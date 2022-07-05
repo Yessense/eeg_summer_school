@@ -29,6 +29,8 @@ import tqdm
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 
+from src.model.im_classifier import IMClassifier
+
 
 class envelope_detector(nn.Module):
     def __init__(self, in_channels, channels_per_channel):
@@ -190,7 +192,7 @@ class Model:
 
 
 
-        model = simple_net(self.data.shape[1], self.y.shape[1], self.LAG_BACKWARD)
+        model = IMClassifier(self.data.shape[1], self.y.shape[1], self.LAG_BACKWARD)
         #for i in range(model.ICA_CHANNELS):
             #model.ica.weight.data[0, :, 0] = torch.Tensor([int(i in CHANNELS) for i in range(64)])
     

@@ -38,7 +38,7 @@ class EnvelopeDetector(nn.Module):
 
 
 class IMClassifier(pl.LightningModule):
-    def __init__(self, in_channels, n_classes, channels_multiplier, lag_backward):
+    def __init__(self, in_channels, n_classes, lag_backward, channels_multiplier=1):
         super(IMClassifier, self).__init__()
         # TODO: Pre out?
         self.pointwise_out = 3
@@ -67,7 +67,9 @@ class IMClassifier(pl.LightningModule):
 
         detected_envelopes = self.detector(inputs)
 
-        left_samples_slice = slice(((self.lag_backward - self.detector.filtering_size - self.detector.envelope_size + 2) % self.fin_layer_decim),None,self.fin_layer_decim)
+        left_samples_slice = slice(((
+                                                self.lag_backward - self.detector.filtering_size - self.detector.envelope_size + 2) % self.fin_layer_decim),
+                                   None, self.fin_layer_decim)
         features = detected_envelopes[:, :, left_samples_slice]
 
         output = self.classifier(features)
