@@ -6,28 +6,29 @@ from torch import nn
 
 
 class EnvelopeDetector(nn.Module):
-    def __init__(self, in_channels: int, channels_multiplier: int, filtering_s):
+    def __init__(self, in_channels: int,
+                 channels_multiplier: int = 1,
+                 bandpass_filter_size: int = 100,
+                 lowpass_filter_size: int = 50):
         super(EnvelopeDetector, self).__init__()
-        # TODO: Channels multiplier? Различные фильтры
-        self.channels_multiplier = channels_multiplier
 
-        self.hidden_channels = self.channels_multiplier * in_channels
-        self.filtering_size = 100
-        # TODO: Envelope size? Длина bandpass фильтра
-        self.envelope_size = 50
+        self.channels_multiplier = channels_multiplier  # Channels multiplier? Различные фильтры
+        self.bandpass_filter_size = bandpass_filter_size
+        self.lowpass_filter_size = lowpass_filter_size
 
         # Layers
+        self.hidden_channels = self.channels_multiplier * in_channels
         self.conv_filtering = nn.Conv1d(in_channels, self.hidden_channels,
-                                        kernel_size=self.filtering_size, groups=self.hidden_channels, bias=False)
+                                        kernel_size=self.bandpass_filter_size, groups=self.hidden_channels, bias=False)
         self.pre_envelope_batchnorm = nn.BatchNorm1d(self.hidden_channels, affine=False)
+
+        # Weight data = Нормированная сумма
         self.conv_envelope = nn.Conv1d(in_channels, self.hidden_channels,
-                                       kernel_size=self.filtering_size, groups=self.hidden_channels)
-        # TODO: Grad? Всегда складывает
+                                       kernel_size=self.bandpass_filter_size, groups=self.hidden_channels)
         self.conv_envelope.requires_grad = False
-        # TODO: Weight data? Нормированная сумма
         self.conv_envelope.weight.data = (
-                torch.ones(self.hidden_channels * self.envelope_size) / self.filtering_size
-        ).reshape((self.hidden_channels, 1, self.envelope_size))
+                torch.ones(self.hidden_channels * self.lowpass_filter_size) / self.bandpass_filter_size
+        ).reshape((self.hidden_channels, 1, self.lowpass_filter_size))
 
     def forward(self, x):
         x = self.conv_filtering(x)
@@ -55,7 +56,7 @@ class IMClassifier(pl.LightningModule):
         # TODO: detector-out? lag_backward = длина окна, длина окна фильтра, длина окна фильтра огибающей
         # И прореживаем
         self.detector_out = self.pointwise_out * (
-                (lag_backward - self.detector.filtering_size - self.detector.envelope_size + 2)
+                (lag_backward - self.detector.bandpass_filter_size - self.detector.lowpass_filter_size + 2)
                 // self.fin_layer_decim)
         self.detector_bn = nn.BatchNorm1d(self.detector_out, affine=False)
 
@@ -68,7 +69,7 @@ class IMClassifier(pl.LightningModule):
         detected_envelopes = self.detector(inputs)
 
         left_samples_slice = slice(((
-                                                self.lag_backward - self.detector.filtering_size - self.detector.envelope_size + 2) % self.fin_layer_decim),
+                                            self.lag_backward - self.detector.bandpass_filter_size - self.detector.lowpass_filter_size + 2) % self.fin_layer_decim),
                                    None, self.fin_layer_decim)
         features = detected_envelopes[:, :, left_samples_slice]
 
