@@ -63,17 +63,21 @@ class IMClassifier(pl.LightningModule):
         self.classifier = nn.Linear(self.detector_out, n_classes)
 
     def forward(self, x):
+        # Spatial filtering
         inputs = self.pointwise_conv(x)
         inputs = self.pointwise_bn(inputs)
 
+        # Adaptive envelope extractor
         detected_envelopes = self.detector(inputs)
 
-        left_samples_slice = slice(((
-                                            self.lag_backward - self.detector.bandpass_filter_size - self.detector.lowpass_filter_size + 2) % self.fin_layer_decim),
-                                   None, self.fin_layer_decim)
-        features = detected_envelopes[:, :, left_samples_slice]
+        # N most recent samples
+        start = self.lag_backward - self.detector.bandpass_filter_size - self.detector.lowpass_filter_size + 2
+        left_samples_slice = slice(start % self.fin_layer_decim, None, self.fin_layer_decim)
+        features = detected_envelopes[:, :, left_samples_slice].contiguous()
+        features = features.view(features.size(0), -1)
 
         output = self.classifier(features)
+
         return output
 
 # Задние висят и много шума
