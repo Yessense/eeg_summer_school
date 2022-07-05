@@ -41,11 +41,10 @@ class EnvelopeDetector(nn.Module):
 class IMClassifier(pl.LightningModule):
     def __init__(self, in_channels, n_classes, lag_backward, channels_multiplier=1):
         super(IMClassifier, self).__init__()
-        # TODO: Pre out?
         self.pointwise_out = 3
         self.fin_layer_decim = 20
         self.channels_multiplier = channels_multiplier
-        # TODO: Lag backward?
+        # window size
         self.lag_backward = lag_backward
 
         # Layers
@@ -53,8 +52,9 @@ class IMClassifier(pl.LightningModule):
         self.pointwise_bn = torch.nn.BatchNorm1d(self.pointwise_out, affine=False)
 
         self.detector = EnvelopeDetector(self.pointwise_out, self.channels_multiplier)
-        # TODO: detector-out? lag_backward = длина окна, длина окна фильтра, длина окна фильтра огибающей
-        # И прореживаем
+        # TODO: detector-out lag_backward = длина окна, длина окна фильтра, длина окна фильтра огибающей
+
+        # N most recent samples
         self.detector_out = self.pointwise_out * (
                 (lag_backward - self.detector.bandpass_filter_size - self.detector.lowpass_filter_size + 2)
                 // self.fin_layer_decim)
@@ -69,6 +69,7 @@ class IMClassifier(pl.LightningModule):
 
         # Adaptive envelope extractor
         detected_envelopes = self.detector(inputs)
+        # TODO: Detector batch norm???
 
         # N most recent samples
         start = self.lag_backward - self.detector.bandpass_filter_size - self.detector.lowpass_filter_size + 2
@@ -78,6 +79,28 @@ class IMClassifier(pl.LightningModule):
         output = self.classifier(features)
 
         return output
+
+    def training_step(self, batch):
+        X_batch, y_batch, batch_idx = batch
+        y_batch = y_batch.argmax(axis=1)
+
+        X_batch = X_batch.float()
+        y_batch = y_batch.long()
+        y_predicted = self.forward(X_batch)
+
+        loss = self.loss_func(y_predicted, y_batch)
+
+        return loss
+
+    def loss_func(self, y_pred, y_true):
+        loss = nn.CrossEntropyLoss()
+        return loss(y_pred, y_true)
+
+
+    def configure_optimizers(self):
+        optim = torch.optim.Adam(self.parameters(), lr=3e-4)
+        return optim
+
 
 # Задние висят и много шума
 # Боковые - мышцы, передние - глаза.
