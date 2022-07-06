@@ -67,7 +67,10 @@ class PhysionetDataset(IterableDataset):
                  target_column: str = 'state',
                  dt: int = 256,
                  shift: int = 128,
-                 size: int = 10 ** 6):
+                 size: int = 10 ** 6,
+                 lower_bracket: int = 5000,
+                 upper_bracket: int = 10000
+                 ):
         self.size = size
         if used_columns is None:
             used_columns = ['F3', 'Fz', 'F4',
@@ -102,8 +105,8 @@ class PhysionetDataset(IterableDataset):
         self.dt = dt
 
         self.data = [[] for _ in self.allowed_labels]
-        self.l_b = 100
-        self.u_b = 200
+        self.l_b = lower_bracket
+        self.u_b = upper_bracket
 
     def __iter__(self):
         for i in range(self.size):

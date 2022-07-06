@@ -1,6 +1,7 @@
 import sys
 from argparse import ArgumentParser
 
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 
@@ -16,20 +17,47 @@ parser = ArgumentParser()
 
 # add PROGRAM level args
 program_parser = parser.add_argument_group('program')
+program_parser.add_argument("--in_channels", type=int, default=27)
+program_parser.add_argument("--n_classes", type=int, default=3)
+program_parser.add_argument("--lag_backward", type=int, default=256)
+program_parser.add_argument("--shift", type=int, default=128)
+program_parser.add_argument("--lower_bracket", type=int, default=5000)
+program_parser.add_argument("--upper_bracket", type=int, default=10000)
 
-classifier = IMClassifier(in_channels=27, n_classes=3, lag_backward=256)
+program_parser.add_argument("--dataset_path", type=str, default="../data_physionet/")
+program_parser.add_argument("--batch_size", type=int, default=512)
+
+program_parser.add_argument("--gpus", type=str, default='0')
+
+parser = IMClassifier.add_model_specific_args(parent_parser=parser)
+parser = pl.Trainer.add_argparse_args(parser)
+args = parser.parse_args()
+
+classifier = IMClassifier(in_channels=args.in_channels,
+                          n_classes=args.n_classes,
+                          lag_backward=args.lag_backward)
 
 wandb_logger = WandbLogger(project='eeg', log_model=True)
 
-path_to_directory = "/home/yessense/Downloads/data_physionet"
-dataset = PhysionetDataset(path_to_directory, list(range(1, 70)), dt=256, shift=128)
-train_dataloader = DataLoader(dataset, batch_size=2)
+dataset = PhysionetDataset(args.dataset_path,
+                           list(range(1, 70)),
+                           dt=args.lag_backward,
+                           shift=args.shift,
+                           lower_bracket=args.lower_bracket,
+                           upper_bracket=args.upper_bracket)
+train_dataloader = DataLoader(dataset, batch_size=args.batch_size)
 
 profiler = 'simple'
-gpus = None # [0]
+
+if args.gpus == 'None':
+    gpus = None
+elif args.gpus.isnumeric():
+    gpus = [int(args.gpus)]
+else:
+    raise ValueError()
 
 trainer = pl.Trainer(gpus=gpus,
-                     max_epochs=2,
+                     max_epochs=args.max_epochs,
                      profiler=profiler,
                      logger=wandb_logger)
 
