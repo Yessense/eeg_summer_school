@@ -5,7 +5,7 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataset import T_co, IterableDataset
 import scipy.signal as sn
 
@@ -66,7 +66,9 @@ class PhysionetDataset(IterableDataset):
                  used_columns: Optional[List] = None,
                  target_column: str = 'state',
                  dt: int = 256,
-                 shift: int = 128):
+                 shift: int = 128,
+                 size: int = 10 ** 6):
+        self.size = size
         if used_columns is None:
             used_columns = ['F3', 'Fz', 'F4',
                             'Fc5', 'Fc3', 'Fc1', 'Fcz', 'Fc2', 'Fc4', 'Fc6',
@@ -102,6 +104,10 @@ class PhysionetDataset(IterableDataset):
         self.data = [[] for _ in self.allowed_labels]
         self.l_b = 100
         self.u_b = 200
+
+    def __iter__(self):
+        for i in range(self.size):
+            yield self.generate_item()
 
     def update_data(self) -> None:
         for label_idx, label in enumerate(self.allowed_labels):
@@ -139,7 +145,7 @@ class PhysionetDataset(IterableDataset):
         self.update_data()
         idx = random.choice(self.labels_indicies)
         x = torch.Tensor(self.data[idx].pop()).float()
-        y = torch.Tensor(self.allowed_labels[idx]).long()
+        y = torch.Tensor([idx]).int()
         return x, y
 
     def get_random_bci_exp(self, label):
@@ -160,10 +166,16 @@ class PhysionetDataset(IterableDataset):
 if __name__ == '__main__':
     path_to_directory = "/home/yessense/Downloads/data_physionet"
     dataset = PhysionetDataset(path_to_directory, [1, 2], dt=256, shift=128)
-    for i in range(1):
-        x, y = dataset.generate_item()
+    # for i in range(1):
+    #     x, y = dataset.generate_item()
+    #
+    #     print(x.shape)
+    #     print(y.shape)
+    #
+    #     exit(0)
 
-        print(x.shape)
-        print(y.shape)
+    dataloader = DataLoader(dataset, batch_size=10)
 
-        exit(0)
+    batch = next(iter(dataloader))
+    print("Done")
+
