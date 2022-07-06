@@ -4,6 +4,7 @@ from typing import List, Optional
 
 import numpy as np
 import pandas as pd
+import torch
 from torch.utils.data import Dataset
 from torch.utils.data.dataset import T_co, IterableDataset
 import scipy.signal as sn
@@ -68,7 +69,7 @@ class PhysionetDataset(IterableDataset):
                  shift: int = 128):
         if used_columns is None:
             used_columns = ['F3', 'Fz', 'F4',
-                            'Fc5', 'Fc3', 'Fc1', 'Fcz', 'Fc2', 'Fc6',
+                            'Fc5', 'Fc3', 'Fc1', 'Fcz', 'Fc2', 'Fc4', 'Fc6',
                             'C5', 'C3', 'C1', 'Cz', 'C2', 'C4', 'C6',
                             'Cp5', 'Cp3', 'Cp1', 'Cpz', 'Cp2', 'Cp4', 'Cp6',
                             'P3', 'Pz', 'P4'
@@ -84,6 +85,7 @@ class PhysionetDataset(IterableDataset):
 
         self.labels_dict = {1: "left", 2: "feet", 3: "right"}
         self.allowed_labels = list(self.labels_dict.keys())
+        self.labels_indicies = list(range(len(self.allowed_labels)))
 
         self.bci_exp_count = 6
         self.bci_exp_arms = [0, 1, 2]
@@ -97,9 +99,20 @@ class PhysionetDataset(IterableDataset):
         self.shift = shift
         self.dt = dt
 
-    def generate_item(self):
-        label = random.choice(self.allowed_labels)
-        path_to_bci_exp = self.get_random_bci_exp(label)
+        self.data = [[] for _ in self.allowed_labels]
+        self.l_b = 100
+        self.u_b = 200
+
+    def update_data(self) -> None:
+        for label_idx, label in enumerate(self.allowed_labels):
+            if len(self.data[label_idx]) < self.l_b:
+                while len(self.data[label_idx]) < self.u_b:
+                    print(len(self.data[label_idx]))
+                    path_to_bci_exp = self.get_random_bci_exp(label)
+                    print(path_to_bci_exp)
+                    self.data[label_idx].extend(self.read_data(path_to_bci_exp, label))
+
+    def read_data(self, path_to_bci_exp, label):
 
         data = pd.read_csv(path_to_bci_exp)
         data = data[self.used_columns + [self.target_column]]
@@ -118,13 +131,22 @@ class PhysionetDataset(IterableDataset):
         y = data[:data.shape[0] - self.dt + 1: self.shift, -1]
         y = y[mask]
 
+        shuffled_indices = list(range(len(x)))
+        random.shuffle(shuffled_indices)
+        return [x[i] for i in shuffled_indices if y[i] == label]
+
+    def generate_item(self):
+        self.update_data()
+        idx = random.choice(self.labels_indicies)
+        x = torch.Tensor(self.data[idx].pop()).float()
+        y = torch.Tensor(self.allowed_labels[idx]).long()
         return x, y
 
     def get_random_bci_exp(self, label):
         session_idx = random.choice(self.sessions_indices)
         session_name = self.session_template.format(session_idx)
 
-        if label == 3:
+        if label == 2:
             bci_exp_idx = random.choice(self.bci_exp_legs)
         else:
             bci_exp_idx = random.choice(self.bci_exp_arms)
@@ -140,5 +162,8 @@ if __name__ == '__main__':
     dataset = PhysionetDataset(path_to_directory, [1, 2], dt=256, shift=128)
     for i in range(1):
         x, y = dataset.generate_item()
+
         print(x.shape)
         print(y.shape)
+
+        exit(0)
