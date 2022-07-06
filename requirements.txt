@@ -8,3 +8,4 @@ tqdm
 pylsl
 pytorch_lightning
 google-api-python-client
+wandb

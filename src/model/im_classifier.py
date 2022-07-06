@@ -61,6 +61,7 @@ class IMClassifier(pl.LightningModule):
         self.detector_bn = nn.BatchNorm1d(self.detector_out, affine=False)
 
         self.classifier = nn.Linear(self.detector_out, n_classes)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         # Spatial filtering
@@ -77,6 +78,7 @@ class IMClassifier(pl.LightningModule):
         features = detected_envelopes[:, :, left_samples_slice].contiguous()
         features = features.view(features.size(0), -1)
         output = self.classifier(features)
+        output = self.sigmoid(output)
 
         return output
 
@@ -90,17 +92,16 @@ class IMClassifier(pl.LightningModule):
 
         loss = self.loss_func(y_predicted, y_batch)
 
+        self.log("loss", loss, prog_bar=True)
         return loss
 
     def loss_func(self, y_pred, y_true):
         loss = nn.CrossEntropyLoss()
         return loss(y_pred, y_true)
 
-
     def configure_optimizers(self):
         optim = torch.optim.Adam(self.parameters(), lr=3e-4)
         return optim
-
 
 # Задние висят и много шума
 # Боковые - мышцы, передние - глаза.

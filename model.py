@@ -49,7 +49,6 @@ class envelope_detector(nn.Module):
                 torch.ones(self.OUTPUT_CHANNELS * self.ENVELOPE_SIZE) / self.FILTERING_SIZE).reshape(
             (self.OUTPUT_CHANNELS, 1, self.ENVELOPE_SIZE))
         self.relu = torch.nn.ReLU()
-        self.intermidiate = None
 
     def forward(self, x):
         x = self.conv_filtering(x)
