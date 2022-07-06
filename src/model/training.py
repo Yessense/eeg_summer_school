@@ -58,6 +58,7 @@ test_dataset = PhysionetDataset(args.dataset_path,
                                 upper_bracket=args.upper_bracket)
 test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 
+monitor = 'val loss'
 profiler = 'simple'
 
 if args.gpus == 'None':
@@ -66,6 +67,10 @@ elif args.gpus.isnumeric():
     gpus = [int(args.gpus)]
 else:
     raise ValueError()
+
+# checkpoint
+save_top_k = 2
+checkpoint_callback = ModelCheckpoint(monitor=monitor, save_top_k=save_top_k)
 
 trainer = pl.Trainer(gpus=gpus,
                      max_epochs=args.max_epochs,
