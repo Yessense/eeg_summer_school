@@ -83,7 +83,7 @@ class IMClassifier(pl.LightningModule):
         return output
 
     def training_step(self, batch):
-        X_batch, y_batch, batch_idx = batch
+        X_batch, y_batch  = batch
         y_batch = y_batch.argmax(axis=1)
 
         X_batch = X_batch.float()

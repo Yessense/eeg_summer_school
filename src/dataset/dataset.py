@@ -133,6 +133,7 @@ class PhysionetDataset(IterableDataset):
 
         rolled = roll2d(data[:, :-1], (self.dt, len(self.used_columns)), 1, self.shift).squeeze()
         x = rolled[mask]
+        x = x.transpose(0, 2, 1)
 
         y = data[:data.shape[0] - self.dt + 1: self.shift, -1]
         y = y[mask]
@@ -178,4 +179,3 @@ if __name__ == '__main__':
 
     batch = next(iter(dataloader))
     print("Done")
-

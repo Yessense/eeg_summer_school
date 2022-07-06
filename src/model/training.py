@@ -22,7 +22,7 @@ classifier = IMClassifier(in_channels=27, n_classes=3, lag_backward=256)
 wandb_logger = WandbLogger(project='eeg', log_model=True)
 
 path_to_directory = "/home/yessense/Downloads/data_physionet"
-dataset = PhysionetDataset(path_to_directory, list(range(70)), dt=256, shift=128)
+dataset = PhysionetDataset(path_to_directory, list(range(1, 70)), dt=256, shift=128)
 train_dataloader = DataLoader(dataset, batch_size=2)
 
 profiler = 'simple'
