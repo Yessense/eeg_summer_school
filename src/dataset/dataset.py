@@ -1,12 +1,44 @@
 import os
 import random
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
 from torch.utils.data.dataset import T_co, IterableDataset
 import scipy.signal as sn
+
+
+def roll2d(a, b, dx=1, dy=1):
+    """
+    rolling 2d window for nd array
+    last 2 dimensions
+    parameters
+    ----------
+    a : ndarray
+        target array where is needed rolling window
+    b : tuple
+        window array size-like rolling window
+    dx : int
+        horizontal step, abscissa, number of columns
+    dy : int
+        vertical step, ordinate, number of rows
+    returns
+    -------
+    out : ndarray
+        returned array has shape 4
+        first two dimensions have size depends on last two dimensions target array
+    """
+    shape = a.shape[:-2] + \
+            ((a.shape[-2] - b[-2]) // dy + 1,) + \
+            ((a.shape[-1] - b[-1]) // dx + 1,) + \
+            b  # sausage-like shape with 2d cross-section
+    strides = a.strides[:-2] + \
+              (a.strides[-2] * dy,) + \
+              (a.strides[-1] * dx,) + \
+              a.strides[-2:]
+    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+
 
 def roll(a, b, dx=1):
     """
@@ -26,8 +58,24 @@ def roll(a, b, dx=1):
     strides = a.strides[:-1] + (a.strides[-1] * dx,) + a.strides[-1:]
     return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
 
+
 class PhysionetDataset(IterableDataset):
-    def __init__(self, path_to_directory: str, sessions_indices: List[int]):
+    def __init__(self, path_to_directory: str,
+                 sessions_indices: List[int],
+                 used_columns: Optional[List] = None,
+                 target_column: str = 'state',
+                 dt: int = 256,
+                 shift: int = 128):
+        if used_columns is None:
+            used_columns = ['F3', 'Fz', 'F4',
+                            'Fc5', 'Fc3', 'Fc1', 'Fcz', 'Fc2', 'Fc6',
+                            'C5', 'C3', 'C1', 'Cz', 'C2', 'C4', 'C6',
+                            'Cp5', 'Cp3', 'Cp1', 'Cpz', 'Cp2', 'Cp4', 'Cp6',
+                            'P3', 'Pz', 'P4'
+                            ]
+        self.used_columns = used_columns
+        self.target_column = target_column
+
         self.path_to_directory = path_to_directory
         self.s_rate = 500
 
@@ -46,27 +94,31 @@ class PhysionetDataset(IterableDataset):
         self.b, self.a = sn.butter(2, [2, 40], btype='bandpass', fs=self.s_rate)
         self.b50, self.a50 = sn.butter(2, [48, 50], btype='bandstop', fs=self.s_rate)
 
-        self.shift = 128
-        self.dt = 256
+        self.shift = shift
+        self.dt = dt
 
     def generate_item(self):
         label = random.choice(self.allowed_labels)
         path_to_bci_exp = self.get_random_bci_exp(label)
+
         data = pd.read_csv(path_to_bci_exp)
+        data = data[self.used_columns + [self.target_column]]
         data = data.to_numpy()
+
         class_change = np.convolve(data[:, -1], [1, -1], 'same') != 0
         class_change = np.roll(class_change.astype(np.int32), -1)
         class_change = np.convolve(class_change, [1, 1], 'same')
-        conv = np.sum(roll(class_change, np.ones(self.dt), self.shift), axis=1)
 
+        conv = np.sum(roll(class_change, np.ones(self.dt), self.shift), axis=1)
         mask = conv < 2
-        rolled = roll2d(data[:, :], (self.dt, column_number), 1, shift).squeeze()
+
+        rolled = roll2d(data[:, :-1], (self.dt, len(self.used_columns)), 1, self.shift).squeeze()
         x = rolled[mask]
 
-        y = arr[:len(arr) - dt + 1:shift, 0]
+        y = data[:data.shape[0] - self.dt + 1: self.shift, -1]
         y = y[mask]
 
-        return class_change
+        return x, y
 
     def get_random_bci_exp(self, label):
         session_idx = random.choice(self.sessions_indices)
@@ -85,7 +137,8 @@ class PhysionetDataset(IterableDataset):
 
 if __name__ == '__main__':
     path_to_directory = "/home/yessense/Downloads/data_physionet"
-    dataset = PhysionetDataset(path_to_directory, [1, 2])
-    for i in range(10):
-        item = dataset.generate_item()
-        print(item)
+    dataset = PhysionetDataset(path_to_directory, [1, 2], dt=256, shift=128)
+    for i in range(1):
+        x, y = dataset.generate_item()
+        print(x.shape)
+        print(y.shape)
