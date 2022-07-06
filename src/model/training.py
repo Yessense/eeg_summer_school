@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
+from sklearn.model_selection import train_test_split
 
 from torch.utils.data import DataLoader
 
@@ -39,13 +40,23 @@ classifier = IMClassifier(in_channels=args.in_channels,
 
 wandb_logger = WandbLogger(project='eeg', log_model=True)
 
-dataset = PhysionetDataset(args.dataset_path,
-                           list(range(1, 70)),
-                           dt=args.lag_backward,
-                           shift=args.shift,
-                           lower_bracket=args.lower_bracket,
-                           upper_bracket=args.upper_bracket)
-train_dataloader = DataLoader(dataset, batch_size=args.batch_size)
+train, test = train_test_split(list(range(1, 110)), test_size=0.2, random_state=42)
+
+train_dataset = PhysionetDataset(args.dataset_path,
+                                 train,
+                                 dt=args.lag_backward,
+                                 shift=args.shift,
+                                 lower_bracket=args.lower_bracket,
+                                 upper_bracket=args.upper_bracket)
+train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
+
+test_dataset = PhysionetDataset(args.dataset_path,
+                                test,
+                                dt=args.lag_backward,
+                                shift=args.shift,
+                                lower_bracket=args.lower_bracket,
+                                upper_bracket=args.upper_bracket)
+test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 
 profiler = 'simple'
 
