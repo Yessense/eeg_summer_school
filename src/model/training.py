@@ -43,11 +43,11 @@ dataset_creator = DatasetCreator(args.dataset_path, dt=args.lag_backward,
                                  val_exp_numbers=[2, 5])
 
 train_dataset = Physionet(*dataset_creator.create_dataset(train, args.shift))
-train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
 # Validation data
 validation_dataset = Physionet(*dataset_creator.create_dataset(train, args.shift, validation=True))
-validation_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
+validation_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, drop_last=True)
 #
 # Test data
 test_dataset = Physionet(*dataset_creator.create_dataset(test, args.shift))
@@ -76,6 +76,7 @@ save_top_k = 2
 checkpoint_callback = ModelCheckpoint(monitor=monitor, save_top_k=save_top_k)
 
 trainer = pl.Trainer(gpus=gpus,
+                     log_every_n_steps=5,
                      max_epochs=args.max_epochs,
                      profiler=profiler,
                      logger=wandb_logger)
