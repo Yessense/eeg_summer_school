@@ -8,6 +8,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataset import T_co, IterableDataset
 import scipy.signal as sn
+import time
 
 
 def roll2d(a, b, dx=1, dy=1):
@@ -65,7 +66,10 @@ class DatasetCreator():
                  path_to_dir: str,
                  used_columns: Optional[List] = None,
                  target_column: str = 'state',
-                 dt: int = 256):
+                 dt: int = 256,
+                 bci_exp_numbers=(0, 1, 2, 3, 4, 5),
+                 val_exp_numbers: Optional[List[int]] = None,
+                 used_classes=(1, 2, 3)):
         if used_columns is None:
             used_columns = ['F3', 'Fz', 'F4',
                             'Fc5', 'Fc3', 'Fc1', 'Fcz', 'Fc2', 'Fc4', 'Fc6',
@@ -84,14 +88,35 @@ class DatasetCreator():
         self.session_template = "session_{}"
         self.bci_exp_template = "bci_exp_{}"
         self.bci_exp_data = "data.csv"
-        self.bci_exp_numbers = [0, 1, 2, 3, 4, 5]
-        self.bci_exp_filename = "data.csv"
+        self.bci_exp_numbers = bci_exp_numbers
+        self.val_exp_numbers = val_exp_numbers
 
-    def create_dataset(self, session_numbers: List[int], shift: int = 128):
+        self.bci_exp_filename = "data.csv"
+        self.used_columns = used_columns
+        self.used_classes = used_classes
+
+    def create_dataset(self, session_numbers: List[int],
+                       shift: int = 128,
+                       validation: bool = False):
+
+        start_time = time.time()
+        print(f"-" * 40)
+        print(f"Creating dataset with parameters:")
+        print(f"\tsession_numbers: {session_numbers}")
+        print(f"\tshift: {shift}")
+        print(f"\tdt: {self.dt}")
+        print(f"\tvalidation: {validation}")
+        if validation:
+            if self.val_exp_numbers is not None:
+                bci_exp_numbers = self.val_exp_numbers
+            else:
+                bci_exp_numbers = list(set(self.bci_exp_numbers) - set(self.val_exp_numbers))
+        else:
+            bci_exp_numbers = self.bci_exp_numbers
         x_data = []
         y_data = []
         for session in session_numbers:
-            for bci_exp_number in self.bci_exp_numbers:
+            for bci_exp_number in bci_exp_numbers:
                 session_name = self.session_template.format(session)
                 bci_exp_name = self.bci_exp_template.format(bci_exp_number)
                 bci_exp_path = os.path.join(self.path_to_dir, session_name, bci_exp_name, self.bci_exp_data)
@@ -99,12 +124,15 @@ class DatasetCreator():
                 experiment_data = pd.read_csv(bci_exp_path)
                 experiment_data = experiment_data[self.used_columns + [self.target_column]]
                 experiment_data = experiment_data.to_numpy()
-                experiment_data = sn.lfilter(self.b, self.a, experiment_data, axis=0)
-                experiment_data = sn.lfilter(self.b, self.a, experiment_data, axis=0)
 
-                x = roll2d(experiment_data[:, :-1], (self.dt, len(self.used_columns)), 1, shift).squeeze()
+                x = experiment_data[:, :-1]
+                x = sn.lfilter(self.b, self.a, x, axis=0)
+                x = sn.lfilter(self.b, self.a, x, axis=0)
+                x = roll2d(x, (self.dt, len(self.used_columns)), 1, shift).squeeze()
                 x = x.transpose(0, 2, 1)
-                y = experiment_data[:experiment_data.shape[0] - self.dt + 1: shift, -1]
+
+                y = experiment_data[:, -1]
+                y = y[:y.shape[0] - self.dt + 1: shift]
 
                 class_change = np.convolve(experiment_data[:, -1], [1, -1], 'same') != 0
                 class_change = np.roll(class_change.astype(np.int32), -1)
@@ -112,125 +140,32 @@ class DatasetCreator():
                 conv = np.sum(roll(class_change, np.ones(self.dt), shift), axis=1)
                 mask = conv < 2
 
-                x_data.append(x[mask])
-                y_data.append(y[mask])
+                used_classes_mask = np.zeros_like(y, dtype=bool)
+                for used_class in self.used_classes:
+                    used_classes_mask |= y == used_class
+
+                x_data.append(x[mask & used_classes_mask])
+                y_data.append(y[mask & used_classes_mask] - 1)
+
+        print(f"Dataset is created. Time elapsed: {time.time() - start_time:0.1f} s.")
+        print()
 
         return torch.tensor(np.concatenate(x_data, axis=0)).float(), \
-               torch.tensor(np.concatenate(y_data, axis=0)).int()
+               torch.tensor(np.concatenate(y_data, axis=0)).long()
 
 
-class PhysionetDataset(IterableDataset):
+class Physionet(Dataset):
+    def __init__(self, data: torch.Tensor, target: torch.Tensor):
+        assert data.shape[0] == target.shape[0]
+        self.size = data.shape[0]
+        self.data = data
+        self.target = target
 
-    def __init__(self, path_to_directory: str,
-                 sessions_indices: List[int],
-                 used_columns: Optional[List] = None,
-                 target_column: str = 'state',
-                 dt: int = 256,
-                 shift: int = 128,
-                 size: int = 10 ** 6,
-                 validation=False,
-                 ):
-        self.size = size
-        if used_columns is None:
-            used_columns = ['F3', 'Fz', 'F4',
-                            'Fc5', 'Fc3', 'Fc1', 'Fcz', 'Fc2', 'Fc4', 'Fc6',
-                            'C5', 'C3', 'C1', 'Cz', 'C2', 'C4', 'C6',
-                            'Cp5', 'Cp3', 'Cp1', 'Cpz', 'Cp2', 'Cp4', 'Cp6',
-                            'P3', 'Pz', 'P4'
-                            ]
-        self.used_columns = used_columns
-        self.target_column = target_column
+    def __len__(self):
+        return self.size
 
-        self.path_to_directory = path_to_directory
-        self.s_rate = 500
-
-        self.sessions_indices = sessions_indices
-        self.session_template = "session_{}"
-
-        self.labels_dict = {1: "left", 2: "feet", 3: "right"}
-        self.allowed_labels = list(self.labels_dict.keys())
-        self.labels_indicies = list(range(len(self.allowed_labels)))
-
-        self.bci_exp_count = 6
-        if validation:
-            self.bci_exp_arms = [2]
-            self.bci_exp_legs = [5]
-        else:
-            self.bci_exp_arms = [0, 1]
-            self.bci_exp_legs = [3, 4]
-
-        self.bci_exp_template = "bci_exp_{}"
-        self.bci_exp_data = "data.csv"
-
-        self.b, self.a = sn.butter(2, [2, 40], btype='bandpass', fs=self.s_rate)
-        self.b50, self.a50 = sn.butter(2, [48, 50], btype='bandstop', fs=self.s_rate)
-
-        self.shift = shift
-        self.dt = dt
-
-        self.data = [[] for _ in self.allowed_labels]
-        self.l_b = lower_bracket
-        self.u_b = upper_bracket
-
-
-def __iter__(self):
-    for i in range(self.size):
-        yield self.generate_item()
-
-
-def update_data(self) -> None:
-    for label_idx, label in enumerate(self.allowed_labels):
-        if len(self.data[label_idx]) < self.l_b:
-            while len(self.data[label_idx]) < self.u_b:
-                path_to_bci_exp = self.get_random_bci_exp(label)
-                self.data[label_idx].extend(self.read_data(path_to_bci_exp, label))
-
-
-def read_data(self, path_to_bci_exp, label):
-    data = pd.read_csv(path_to_bci_exp)
-    data = data[self.used_columns + [self.target_column]]
-    data = data.to_numpy()
-
-    class_change = np.convolve(data[:, -1], [1, -1], 'same') != 0
-    class_change = np.roll(class_change.astype(np.int32), -1)
-    class_change = np.convolve(class_change, [1, 1], 'same')
-
-    conv = np.sum(roll(class_change, np.ones(self.dt), self.shift), axis=1)
-    mask = conv < 2
-
-    rolled = roll2d(data[:, :-1], (self.dt, len(self.used_columns)), 1, self.shift).squeeze()
-    x = rolled[mask]
-    x = x.transpose(0, 2, 1)
-
-    y = data[:data.shape[0] - self.dt + 1: self.shift, -1]
-    y = y[mask]
-
-    shuffled_indices = list(range(len(x)))
-    random.shuffle(shuffled_indices)
-    return [x[i] for i in shuffled_indices if y[i] == label]
-
-
-def generate_item(self):
-    self.update_data()
-    idx = random.choice(self.labels_indicies)
-    x = torch.Tensor(self.data[idx].pop()).float()
-    y = torch.Tensor([idx]).int()
-    return x, y
-
-
-def get_random_bci_exp(self, label):
-    session_idx = random.choice(self.sessions_indices)
-    session_name = self.session_template.format(session_idx)
-
-    if label == 2:
-        bci_exp_idx = random.choice(self.bci_exp_legs)
-    else:
-        bci_exp_idx = random.choice(self.bci_exp_arms)
-
-    bci_exp_name = self.bci_exp_template.format(bci_exp_idx)
-
-    path_to_bci_exp = os.path.join(self.path_to_directory, session_name, bci_exp_name, self.bci_exp_data)
-    return path_to_bci_exp
+    def __getitem__(self, idx):
+        return self.data[idx], self.target[idx]
 
 
 if __name__ == '__main__':

@@ -4,6 +4,7 @@ from typing import Any
 import pytorch_lightning as pl
 import torch
 from torch import nn
+from torchmetrics import Accuracy
 
 
 class EnvelopeDetector(nn.Module):
@@ -73,6 +74,7 @@ class IMClassifier(pl.LightningModule):
 
         self.classifier = nn.Linear(self.detector_out, n_classes)
         self.sigmoid = nn.Sigmoid()
+        self.accuracy = Accuracy()
         self.save_hyperparameters()
 
     def forward(self, x):
@@ -94,17 +96,37 @@ class IMClassifier(pl.LightningModule):
 
         return output
 
+    def test_step(self, batch, idx):
+        data, y_target = batch
+        y_predicted = self.forward(data)
+
+        loss = self.loss_func(y_predicted, y_target)
+        accuracy = self.accuracy(y_predicted, y_target)
+        self.log("Test Loss", loss)
+        self.log("Test Accuracy", accuracy, prog_bar=True)
+
+    def validation_step(self, batch, idx):
+        data, y_target = batch
+
+        y_predicted = self.forward(data)
+
+        loss = self.loss_func(y_predicted, y_target)
+        accuracy = self.accuracy(y_predicted, y_target)
+
+        self.log("Val Loss", loss)
+        self.log("Val Accuracy", accuracy, prog_bar=True)
+
     def training_step(self, batch):
-        X_batch, y_batch = batch
-        y_batch = y_batch.argmax(axis=1)
+        data, y_target = batch
 
-        X_batch = X_batch.float()
-        y_batch = y_batch.long()
-        y_predicted = self.forward(X_batch)
+        y_predicted = self.forward(data)
 
-        loss = self.loss_func(y_predicted, y_batch)
+        loss = self.loss_func(y_predicted, y_target)
+        accuracy = self.accuracy(torch.argmax(y_predicted, dim=1), y_target)
 
-        self.log("loss", loss, prog_bar=True)
+        self.log("Train Loss", loss)
+        self.log("Train Accuracy", accuracy, prog_bar=True)
+
         return loss
 
     def loss_func(self, y_pred, y_true):
