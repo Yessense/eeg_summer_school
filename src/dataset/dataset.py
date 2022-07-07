@@ -159,7 +159,7 @@ class DatasetCreator():
         print()
         dataset = torch.tensor(np.concatenate(x_data, axis=0)).float(), \
                   torch.tensor(np.concatenate(y_data, axis=0)).long()
-        torch.save(dataset)
+        torch.save(dataset, path_to_dataset)
 
         return dataset
 
