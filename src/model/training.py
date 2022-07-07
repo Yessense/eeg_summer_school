@@ -8,10 +8,8 @@ from sklearn.model_selection import train_test_split
 
 from torch.utils.data import DataLoader
 
+sys.path.append("..")
 from src.dataset.dataset import DatasetCreator, Physionet
-
-sys.path.append("../..")
-
 from src.model.im_classifier import IMClassifier
 
 # --------------------------------------------------
