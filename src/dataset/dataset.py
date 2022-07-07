@@ -114,7 +114,8 @@ class DatasetCreator():
         else:
             bci_exp_numbers = self.bci_exp_numbers
 
-        dataset_hash = hash(frozenset(session_numbers)) + hash(shift) + hash(validation) + hash(frozenset(bci_exp_numbers))
+        dataset_hash = hash(frozenset(session_numbers)) + hash(shift) + hash(validation) + hash(
+            frozenset(bci_exp_numbers))
         dataset_hash = str(dataset_hash)
 
         path_to_dataset = os.path.join(self.path_to_dir, dataset_hash)
@@ -135,7 +136,9 @@ class DatasetCreator():
 
                 x = experiment_data[:, :-1]
                 x = sn.lfilter(self.b, self.a, x, axis=0)
-                x = sn.lfilter(self.b, self.a, x, axis=0)
+                x = sn.lfilter(self.b50, self.a50, x, axis=0)
+                x -= x.mean(axis=1)[:, np.newaxis]
+                x /= x.std(axis=1)[:, np.newaxis]
                 x = roll2d(x, (self.dt, len(self.used_columns)), 1, shift).squeeze()
                 x = x.transpose(0, 2, 1)
 
