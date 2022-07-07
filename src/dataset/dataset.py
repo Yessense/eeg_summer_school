@@ -82,8 +82,8 @@ class DatasetCreator():
         self.target_column = target_column
         self.dt = dt
         self.s_rate = 500
-        self.b, self.a = sn.butter(2, [8, 36], btype='bandpass', fs=self.s_rate)
-        self.b50, self.a50 = sn.butter(2, [36, 50], btype='bandstop', fs=self.s_rate)
+        self.b, self.a = sn.butter(2, [2, 40], btype='bandpass', fs=self.s_rate)
+        self.b50, self.a50 = sn.butter(2, [48, 50], btype='bandstop', fs=self.s_rate)
 
         self.session_template = "session_{}"
         self.bci_exp_template = "bci_exp_{}"
