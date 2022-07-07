@@ -113,6 +113,13 @@ class DatasetCreator():
                 bci_exp_numbers = list(set(self.bci_exp_numbers) - set(self.val_exp_numbers))
         else:
             bci_exp_numbers = self.bci_exp_numbers
+
+        dataset_hash = hash(set(session_numbers)) + hash(shift) + hash(validation) + hash(set(bci_exp_numbers))
+
+        path_to_dataset = os.path.join(self.path_to_dir, dataset_hash)
+        if os.path.exists(path_to_dataset):
+            return torch.load(path_to_dataset)
+
         x_data = []
         y_data = []
         for session in session_numbers:
@@ -149,9 +156,11 @@ class DatasetCreator():
 
         print(f"Dataset is created. Time elapsed: {time.time() - start_time:0.1f} s.")
         print()
+        dataset = torch.tensor(np.concatenate(x_data, axis=0)).float(), \
+                  torch.tensor(np.concatenate(y_data, axis=0)).long()
+        torch.save(dataset)
 
-        return torch.tensor(np.concatenate(x_data, axis=0)).float(), \
-               torch.tensor(np.concatenate(y_data, axis=0)).long()
+        return dataset
 
 
 class Physionet(Dataset):
