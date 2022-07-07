@@ -95,11 +95,11 @@ class PhysionetDataset(IterableDataset):
 
         self.bci_exp_count = 6
         if validation:
-            self.bci_exp_arms = [0, 1]
-            self.bci_exp_legs = [3, 4]
-        else:
             self.bci_exp_arms = [2]
             self.bci_exp_legs = [5]
+        else:
+            self.bci_exp_arms = [0, 1]
+            self.bci_exp_legs = [3, 4]
 
         self.bci_exp_template = "bci_exp_{}"
         self.bci_exp_data = "data.csv"
@@ -122,9 +122,7 @@ class PhysionetDataset(IterableDataset):
         for label_idx, label in enumerate(self.allowed_labels):
             if len(self.data[label_idx]) < self.l_b:
                 while len(self.data[label_idx]) < self.u_b:
-                    print(len(self.data[label_idx]))
                     path_to_bci_exp = self.get_random_bci_exp(label)
-                    print(path_to_bci_exp)
                     self.data[label_idx].extend(self.read_data(path_to_bci_exp, label))
 
     def read_data(self, path_to_bci_exp, label):

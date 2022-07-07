@@ -14,34 +14,35 @@ sys.path.append("..")
 
 from im_classifier import IMClassifier
 
+# --------------------------------------------------
+# -- Arguments
+# --------------------------------------------------
+
 parser = ArgumentParser()
 
-# add PROGRAM level args
-program_parser = parser.add_argument_group('program')
-program_parser.add_argument("--lower_bracket", type=int, default=5000)
-program_parser.add_argument("--upper_bracket", type=int, default=10000)
+# add program level args
+dataset_parser = parser.add_argument_group('Dataset')
+dataset_parser.add_argument("--dataset_path", type=str, default="../data_physionet/")
+dataset_parser.add_argument("--lower_bracket", type=int, default=5000)
+dataset_parser.add_argument("--upper_bracket", type=int, default=10000)
 
-program_parser.add_argument("--shift", type=int, default=128)
-program_parser.add_argument("--dt", type=int, default=256)
+experiment_parser = parser.add_argument_group('Experiment')
+experiment_parser.add_argument("--shift", type=int, default=128)
+experiment_parser.add_argument("--dt", type=int, default=256)
 
-program_parser.add_argument("--dataset_path", type=str, default="../data_physionet/")
-program_parser.add_argument("--batch_size", type=int, default=512)
-
-program_parser.add_argument("--gpus", type=str, default='0')
+experiment_parser.add_argument("--batch_size", type=int, default=512)
 
 parser = IMClassifier.add_model_specific_args(parent_parser=parser)
 parser = pl.Trainer.add_argparse_args(parser)
 args = parser.parse_args()
 
-
-classifier = IMClassifier(in_channels=args.in_channels,
-                          n_classes=args.n_classes,
-                          lag_backward=args.lag_backward)
-
-wandb_logger = WandbLogger(project='eeg', log_model=True)
+# --------------------------------------------------
+# -- Dataloaders
+# --------------------------------------------------
 
 train, test = train_test_split(list(range(1, 110)), test_size=0.2, random_state=42)
 
+# Train data
 train_dataset = PhysionetDataset(args.dataset_path,
                                  train,
                                  dt=args.lag_backward,
@@ -50,6 +51,16 @@ train_dataset = PhysionetDataset(args.dataset_path,
                                  upper_bracket=args.upper_bracket)
 train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
 
+# Validation data
+train_dataset = PhysionetDataset(args.dataset_path,
+                                 train,
+                                 dt=args.lag_backward,
+                                 shift=args.shift,
+                                 lower_bracket=args.lower_bracket,
+                                 upper_bracket=args.upper_bracket)
+train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
+
+# Test data
 test_dataset = PhysionetDataset(args.dataset_path,
                                 test,
                                 dt=args.lag_backward,
@@ -58,15 +69,23 @@ test_dataset = PhysionetDataset(args.dataset_path,
                                 upper_bracket=args.upper_bracket)
 test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 
+# --------------------------------------------------
+# -- Trainer
+# --------------------------------------------------
+
+classifier = IMClassifier(in_channels=args.in_channels,
+                          n_classes=args.n_classes,
+                          lag_backward=args.lag_backward)
+
+wandb_logger = WandbLogger(project='eeg', log_model=True)
+
 monitor = 'val loss'
 profiler = 'simple'
 
-if args.gpus == 'None':
-    gpus = None
-elif args.gpus.isnumeric():
-    gpus = [int(args.gpus)]
+if args.gpus is not None:
+    gpus = [args.gpus]
 else:
-    raise ValueError()
+    gpus = None
 
 # checkpoint
 save_top_k = 2
