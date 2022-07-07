@@ -56,6 +56,7 @@ class IMClassifier(pl.LightningModule):
         self.pointwise_out = 3
         self.fin_layer_decim = 20
         self.channels_multiplier = channels_multiplier
+        self.lr = lr
         # window size
         self.lag_backward = lag_backward
 
