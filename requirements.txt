@@ -1,0 +1,11 @@
+pandas
+numpy
+torch
+mne
+sklearn
+scipy
+tqdm
+pylsl
+pytorch_lightning
+google-api-python-client
+wandb
