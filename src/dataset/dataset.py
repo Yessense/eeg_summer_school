@@ -77,6 +77,9 @@ class DatasetCreator():
         self.used_columns = used_columns
         self.target_column = target_column
         self.dt = dt
+        self.s_rate = 500
+        self.b, self.a = sn.butter(2, [2, 40], btype='bandpass', fs=self.s_rate)
+        self.b50, self.a50 = sn.butter(2, [48, 50], btype='bandstop', fs=self.s_rate)
 
         self.session_template = "session_{}"
         self.bci_exp_template = "bci_exp_{}"
@@ -96,6 +99,8 @@ class DatasetCreator():
                 experiment_data = pd.read_csv(bci_exp_path)
                 experiment_data = experiment_data[self.used_columns + [self.target_column]]
                 experiment_data = experiment_data.to_numpy()
+                experiment_data = sn.lfilter(self.b, self.a, experiment_data, axis=0)
+                experiment_data = sn.lfilter(self.b, self.a, experiment_data, axis=0)
 
                 x = roll2d(experiment_data[:, :-1], (self.dt, len(self.used_columns)), 1, shift).squeeze()
                 x = x.transpose(0, 2, 1)
@@ -123,8 +128,6 @@ class PhysionetDataset(IterableDataset):
                  dt: int = 256,
                  shift: int = 128,
                  size: int = 10 ** 6,
-                 lower_bracket: int = 5000,
-                 upper_bracket: int = 10000,
                  validation=False,
                  ):
         self.size = size
