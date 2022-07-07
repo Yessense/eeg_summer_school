@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 from typing import Any
 
 import pytorch_lightning as pl
@@ -39,7 +40,17 @@ class EnvelopeDetector(nn.Module):
 
 
 class IMClassifier(pl.LightningModule):
-    def __init__(self, in_channels, n_classes, lag_backward, channels_multiplier=1):
+    @staticmethod
+    def add_model_specific_args(parent_parser: ArgumentParser):
+        parser = parent_parser.add_argument_group("IMClassifier")
+        parser.add_argument("--lr", type=float, default=3e-4)
+        parser.add_argument("--in_channels", type=int, default=27)
+        parser.add_argument("--n_classes", type=int, default=3)
+        parser.add_argument("--lag_backward", type=int, default=256)
+
+        return parent_parser
+
+    def __init__(self, in_channels, n_classes, lag_backward, channels_multiplier=1, lr=3e-4, **kwargs):
         super(IMClassifier, self).__init__()
         self.pointwise_out = 3
         self.fin_layer_decim = 20
@@ -62,6 +73,7 @@ class IMClassifier(pl.LightningModule):
 
         self.classifier = nn.Linear(self.detector_out, n_classes)
         self.sigmoid = nn.Sigmoid()
+        self.save_hyperparameters()
 
     def forward(self, x):
         # Spatial filtering
@@ -83,7 +95,7 @@ class IMClassifier(pl.LightningModule):
         return output
 
     def training_step(self, batch):
-        X_batch, y_batch  = batch
+        X_batch, y_batch = batch
         y_batch = y_batch.argmax(axis=1)
 
         X_batch = X_batch.float()

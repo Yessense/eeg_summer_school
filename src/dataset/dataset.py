@@ -69,7 +69,8 @@ class PhysionetDataset(IterableDataset):
                  shift: int = 128,
                  size: int = 10 ** 6,
                  lower_bracket: int = 5000,
-                 upper_bracket: int = 10000
+                 upper_bracket: int = 10000,
+                 validation=False,
                  ):
         self.size = size
         if used_columns is None:
@@ -93,8 +94,13 @@ class PhysionetDataset(IterableDataset):
         self.labels_indicies = list(range(len(self.allowed_labels)))
 
         self.bci_exp_count = 6
-        self.bci_exp_arms = [0, 1, 2]
-        self.bci_exp_legs = [3, 4, 5]
+        if validation:
+            self.bci_exp_arms = [0, 1]
+            self.bci_exp_legs = [3, 4]
+        else:
+            self.bci_exp_arms = [2]
+            self.bci_exp_legs = [5]
+
         self.bci_exp_template = "bci_exp_{}"
         self.bci_exp_data = "data.csv"
 

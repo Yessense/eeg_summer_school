@@ -18,12 +18,11 @@ parser = ArgumentParser()
 
 # add PROGRAM level args
 program_parser = parser.add_argument_group('program')
-program_parser.add_argument("--in_channels", type=int, default=27)
-program_parser.add_argument("--n_classes", type=int, default=3)
-program_parser.add_argument("--lag_backward", type=int, default=256)
-program_parser.add_argument("--shift", type=int, default=128)
 program_parser.add_argument("--lower_bracket", type=int, default=5000)
 program_parser.add_argument("--upper_bracket", type=int, default=10000)
+
+program_parser.add_argument("--shift", type=int, default=128)
+program_parser.add_argument("--dt", type=int, default=256)
 
 program_parser.add_argument("--dataset_path", type=str, default="../data_physionet/")
 program_parser.add_argument("--batch_size", type=int, default=512)
@@ -33,6 +32,7 @@ program_parser.add_argument("--gpus", type=str, default='0')
 parser = IMClassifier.add_model_specific_args(parent_parser=parser)
 parser = pl.Trainer.add_argparse_args(parser)
 args = parser.parse_args()
+
 
 classifier = IMClassifier(in_channels=args.in_channels,
                           n_classes=args.n_classes,
