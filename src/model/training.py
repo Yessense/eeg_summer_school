@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 
 from torch.utils.data import DataLoader
 
-from src.dataset.dataset import PhysionetDataset
+from src.dataset.dataset import PhysionetDataset, DatasetCreator
 
 sys.path.append("..")
 
@@ -23,8 +23,8 @@ parser = ArgumentParser()
 # add program level args
 dataset_parser = parser.add_argument_group('Dataset')
 dataset_parser.add_argument("--dataset_path", type=str, default="../data_physionet/")
-dataset_parser.add_argument("--lower_bracket", type=int, default=5000)
-dataset_parser.add_argument("--upper_bracket", type=int, default=10000)
+dataset_parser.add_argument("--lower_bracket", type=int, default=1000)
+dataset_parser.add_argument("--upper_bracket", type=int, default=1500)
 dataset_parser.add_argument("--dataset_size", type=int, default=10000)
 
 experiment_parser = parser.add_argument_group('Experiment')
@@ -41,35 +41,33 @@ args = parser.parse_args()
 # -- Dataloaders
 # --------------------------------------------------
 
-train, test = train_test_split(list(range(1, 110)), test_size=0.2, random_state=42)
+train, test = train_test_split(list(range(1, 20)), test_size=0.2, random_state=42)
 
 # Train data
-train_dataset = PhysionetDataset(args.dataset_path,
-                                 train,
+dataset_creator = DatasetCreator(args.dataset_path,
                                  dt=args.lag_backward,
-                                 shift=args.shift,
-                                 lower_bracket=args.lower_bracket,
-                                 upper_bracket=args.upper_bracket)
-train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
+                                 )
+train_dataset = dataset_creator.create_dataset(train, args.shift)
+train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
-# Validation data
-validation_dataset = PhysionetDataset(args.dataset_path,
-                                      train,
-                                      dt=args.lag_backward,
-                                      shift=args.shift,
-                                      lower_bracket=args.lower_bracket,
-                                      upper_bracket=args.upper_bracket,
-                                      validation=True)
-validation_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
-
-# Test data
-test_dataset = PhysionetDataset(args.dataset_path,
-                                test,
-                                dt=args.lag_backward,
-                                shift=args.shift,
-                                lower_bracket=args.lower_bracket,
-                                upper_bracket=args.upper_bracket)
-test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
+# # Validation data
+# validation_dataset = PhysionetDataset(args.dataset_path,
+#                                       train,
+#                                       dt=args.lag_backward,
+#                                       shift=args.shift,
+#                                       lower_bracket=args.lower_bracket,
+#                                       upper_bracket=args.upper_bracket,
+#                                       validation=True)
+# validation_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
+#
+# # Test data
+# test_dataset = PhysionetDataset(args.dataset_path,
+#                                 test,
+#                                 dt=args.lag_backward,
+#                                 shift=args.shift,
+#                                 lower_bracket=args.lower_bracket,
+#                                 upper_bracket=args.upper_bracket)
+# test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 
 # --------------------------------------------------
 # -- Trainer
@@ -98,4 +96,8 @@ trainer = pl.Trainer(gpus=gpus,
                      profiler=profiler,
                      logger=wandb_logger)
 
-trainer.fit(model=classifier, train_dataloaders=train_dataloader)
+trainer.fit(model=classifier,
+            train_dataloaders=train_dataloader,
+            # val_dataloaders=validation_dataloader,
+            # test_dataloader=test_dataloader
+            )
