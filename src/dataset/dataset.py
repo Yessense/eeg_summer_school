@@ -114,7 +114,7 @@ class DatasetCreator():
         else:
             bci_exp_numbers = self.bci_exp_numbers
 
-        dataset_hash = hash(set(session_numbers)) + hash(shift) + hash(validation) + hash(set(bci_exp_numbers))
+        dataset_hash = hash(frozenset(session_numbers)) + hash(shift) + hash(validation) + hash(frozenset(bci_exp_numbers))
 
         path_to_dataset = os.path.join(self.path_to_dir, dataset_hash)
         if os.path.exists(path_to_dataset):
