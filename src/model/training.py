@@ -25,6 +25,7 @@ dataset_parser = parser.add_argument_group('Dataset')
 dataset_parser.add_argument("--dataset_path", type=str, default="../data_physionet/")
 dataset_parser.add_argument("--lower_bracket", type=int, default=5000)
 dataset_parser.add_argument("--upper_bracket", type=int, default=10000)
+dataset_parser.add_argument("--dataset_size", type=int, default=10000)
 
 experiment_parser = parser.add_argument_group('Experiment')
 experiment_parser.add_argument("--shift", type=int, default=128)
@@ -52,13 +53,14 @@ train_dataset = PhysionetDataset(args.dataset_path,
 train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
 
 # Validation data
-train_dataset = PhysionetDataset(args.dataset_path,
-                                 train,
-                                 dt=args.lag_backward,
-                                 shift=args.shift,
-                                 lower_bracket=args.lower_bracket,
-                                 upper_bracket=args.upper_bracket)
-train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
+validation_dataset = PhysionetDataset(args.dataset_path,
+                                      train,
+                                      dt=args.lag_backward,
+                                      shift=args.shift,
+                                      lower_bracket=args.lower_bracket,
+                                      upper_bracket=args.upper_bracket,
+                                      validation=True)
+validation_dataloader = DataLoader(train_dataset, batch_size=args.batch_size)
 
 # Test data
 test_dataset = PhysionetDataset(args.dataset_path,
