@@ -10,9 +10,9 @@ from torch.utils.data import DataLoader
 
 from src.dataset.dataset import DatasetCreator, Physionet
 
-sys.path.append("..")
+sys.path.append("../..")
 
-from model.im_classifier import IMClassifier
+from src.model.im_classifier import IMClassifier
 
 # --------------------------------------------------
 # -- Arguments
