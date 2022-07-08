@@ -31,11 +31,12 @@ class EnvelopeDetector(nn.Module):
         self.conv_envelope.weight.data = (
                 torch.ones(self.hidden_channels * self.lowpass_filter_size) / self.bandpass_filter_size
         ).reshape((self.hidden_channels, 1, self.lowpass_filter_size))
+        self.activation = nn.GELU()
 
     def forward(self, x):
         x = self.conv_filtering(x)
         x = self.pre_envelope_batchnorm(x)
-        x = torch.abs(x)
+        x = self.activation(x)
         x = self.conv_envelope(x)
         return x
 
