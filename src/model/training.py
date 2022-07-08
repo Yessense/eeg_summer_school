@@ -36,7 +36,7 @@ args = parser.parse_args()
 # -- Dataloaders
 # --------------------------------------------------
 
-train, test = train_test_split(list(range(1, 109)), test_size=0.2, random_state=42)
+train, test = train_test_split(list(range(1, 3)), test_size=0.2, random_state=42)
 
 # Train data
 dataset_creator = DatasetCreator(args.dataset_path, dt=args.lag_backward,
@@ -50,7 +50,7 @@ validation_dataset = Physionet(*dataset_creator.create_dataset(train, args.shift
 validation_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, drop_last=True)
 #
 # Test data
-test_dataset = Physionet(*dataset_creator.create_dataset(test, 1))  # args.shift
+test_dataset = Physionet(*dataset_creator.create_dataset(test, args.shift))  # args.shift
 test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 
 # --------------------------------------------------
@@ -76,12 +76,12 @@ checkpoint_callback = ModelCheckpoint(monitor=monitor, save_top_k=save_top_k)
 
 trainer = pl.Trainer(gpus=gpus,
                      max_epochs=args.max_epochs,
-                     profiler=profiler,
-                     logger=wandb_logger)
+                     profiler=profiler,)
 
+logger = wandb_logger
 trainer.fit(model=classifier,
             train_dataloaders=train_dataloader,
-            val_dataloaders=validation_dataloader)
+            val_dataloaders=[validation_dataloader, test_dataloader])
 
 trainer.test(model=classifier,
              dataloaders=test_dataloader)
