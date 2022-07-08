@@ -86,7 +86,7 @@ class IMClassifier(pl.LightningModule):
                 // self.fin_layer_decim)
         self.detector_bn = nn.BatchNorm1d(self.detector_out, affine=False)
 
-        self.classifier = nn.Linear(324, n_classes)
+        self.classifier = nn.Linear(1080, n_classes)
         self.sigmoid = nn.Sigmoid()
         self.accuracy = Accuracy()
         self.save_hyperparameters()
