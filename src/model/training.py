@@ -81,7 +81,7 @@ trainer = pl.Trainer(gpus=gpus,
 logger = wandb_logger
 trainer.fit(model=classifier,
             train_dataloaders=train_dataloader,
-            val_dataloaders=[validation_dataloader, test_dataloader])
+            val_dataloaders=validation_dataloader)
 
 trainer.test(model=classifier,
              dataloaders=test_dataloader)
