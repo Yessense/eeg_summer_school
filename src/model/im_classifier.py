@@ -86,7 +86,7 @@ class IMClassifier(pl.LightningModule):
                 // self.fin_layer_decim)
         self.detector_bn = nn.BatchNorm1d(self.detector_out, affine=False)
 
-        self.classifier = nn.Linear(self.detector_out, n_classes)
+        self.classifier = nn.Linear(324, n_classes)
         self.sigmoid = nn.Sigmoid()
         self.accuracy = Accuracy()
         self.save_hyperparameters()
@@ -101,9 +101,9 @@ class IMClassifier(pl.LightningModule):
         # TODO: Detector batch norm???
 
         # N most recent samples
-        start = self.lag_backward - self.detector.bandpass_filter_size - self.detector.lowpass_filter_size + 2
-        left_samples_slice = slice(start % self.fin_layer_decim, None, self.fin_layer_decim)
-        features = detected_envelopes[:, :, left_samples_slice].contiguous()
+        # start = self.lag_backward - self.detector.bandpass_filter_size - self.detector.lowpass_filter_size + 2
+        # left_samples_slice = slice(start % self.fin_layer_decim, None, self.fin_layer_decim)
+        features = detected_envelopes # [:, :, left_samples_slice].contiguous()
         features = features.view(features.size(0), -1)
         # features = self.detector_bn(features)
 
