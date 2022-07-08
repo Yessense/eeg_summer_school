@@ -48,16 +48,26 @@ class IMClassifier(pl.LightningModule):
         parser.add_argument("--in_channels", type=int, default=27)
         parser.add_argument("--n_classes", type=int, default=3)
         parser.add_argument("--lag_backward", type=int, default=256)
+        parser.add_argument("--pointwise_out", type=int, default=3)
+        parser.add_argument("--fin_layer_decim", type=int, default=20)
 
         return parent_parser
 
-    def __init__(self, in_channels, n_classes, lag_backward, channels_multiplier=1, lr=3e-4, **kwargs):
+    def __init__(self, in_channels,
+                 n_classes: int = 3,
+                 lag_backward: int = 256,  # Ширина окна
+                 channels_multiplier: int = 1,  # Раздувание каналов в EnvelopeDetector
+                 lr: float = 3e-4,
+                 pointwise_out: int = 3,  # Количество каналов после первой свертки
+                 fin_layer_decim: int = 20,  # Прореживание
+                 **kwargs):
         super(IMClassifier, self).__init__()
-        self.pointwise_out = 3
-        self.fin_layer_decim = 20
+        print(pointwise_out)
+        print(fin_layer_decim)
+        self.pointwise_out = pointwise_out
+        self.fin_layer_decim = fin_layer_decim
         self.channels_multiplier = channels_multiplier
         self.lr = lr
-        # window size
         self.lag_backward = lag_backward
 
         # Layers
@@ -135,7 +145,7 @@ class IMClassifier(pl.LightningModule):
         return loss(y_pred, y_true)
 
     def configure_optimizers(self):
-        optim = torch.optim.Adam(self.parameters(), lr=3e-4)
+        optim = torch.optim.Adam(self.parameters(), lr=self.lr)
         return optim
 
 # Задние висят и много шума
