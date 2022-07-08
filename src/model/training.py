@@ -57,9 +57,10 @@ test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 # -- Trainer
 # --------------------------------------------------
 
+dict_args = vars(args)
 classifier = IMClassifier(in_channels=args.in_channels,
                           n_classes=args.n_classes,
-                          lag_backward=args.lag_backward)
+                          lag_backward=args.lag_backward, **dict_args)
 
 wandb_logger = WandbLogger(project='eeg', log_model=True)
 
