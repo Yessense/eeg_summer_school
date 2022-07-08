@@ -76,12 +76,13 @@ checkpoint_callback = ModelCheckpoint(monitor=monitor, save_top_k=save_top_k)
 
 trainer = pl.Trainer(gpus=gpus,
                      max_epochs=args.max_epochs,
+                     logger=wandb_logger,
                      profiler=profiler,)
 
 logger = wandb_logger
 trainer.fit(model=classifier,
             train_dataloaders=train_dataloader,
-            val_dataloaders=validation_dataloader)
+            val_dataloaders=[validation_dataloader, test_dataloader])
 
 trainer.test(model=classifier,
              dataloaders=test_dataloader)

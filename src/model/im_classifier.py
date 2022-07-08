@@ -114,7 +114,7 @@ class IMClassifier(pl.LightningModule):
         self.log("Test Loss", loss)
         self.log("Test Accuracy", accuracy, prog_bar=True)
 
-    def validation_step(self, batch, idx):
+    def validation_step(self, batch, idx, dataloader_idx):
         data, y_target = batch
 
         y_predicted = self.forward(data)
@@ -122,8 +122,12 @@ class IMClassifier(pl.LightningModule):
         loss = self.loss_func(y_predicted, y_target)
         accuracy = self.accuracy(y_predicted, y_target)
 
-        self.log("Val Loss", loss)
-        self.log("Val Accuracy", accuracy, prog_bar=True)
+        if dataloader_idx == 0:
+            self.log("Val Loss", loss)
+            self.log("Val Accuracy", accuracy, prog_bar=True)
+        if dataloader_idx == 1:
+            self.log("Test Loss", loss)
+            self.log("Test Accuracy", accuracy, prog_bar=True)
 
     def training_step(self, batch):
         data, y_target = batch
