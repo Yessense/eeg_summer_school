@@ -104,7 +104,9 @@ class IMClassifier(pl.LightningModule):
         start = self.lag_backward - self.detector.bandpass_filter_size - self.detector.lowpass_filter_size + 2
         left_samples_slice = slice(start % self.fin_layer_decim, None, self.fin_layer_decim)
         features = detected_envelopes[:, :, left_samples_slice].contiguous()
+        features = self.detector_bn(features)
         features = features.view(features.size(0), -1)
+
         output = self.classifier(features)
         output = self.sigmoid(output)
 
