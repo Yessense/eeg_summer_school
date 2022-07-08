@@ -31,7 +31,7 @@ class EnvelopeDetector(nn.Module):
         self.conv_envelope.weight.data = (
                 torch.ones(self.hidden_channels * self.lowpass_filter_size) / self.bandpass_filter_size
         ).reshape((self.hidden_channels, 1, self.lowpass_filter_size))
-        self.activation = nn.GELU()
+        self.activation = torch.abs
 
     def forward(self, x):
         x = self.conv_filtering(x)
@@ -51,7 +51,8 @@ class IMClassifier(pl.LightningModule):
         parser.add_argument("--lag_backward", type=int, default=256)
         parser.add_argument("--pointwise_out", type=int, default=3)
         parser.add_argument("--fin_layer_decim", type=int, default=20)
-
+        parser.add_argument("--bandpass_filter_size", type=int, default=100)
+        parser.add_argument("--lowpass_filter_size", type=int, default=50)
         return parent_parser
 
     def __init__(self, in_channels,
@@ -73,7 +74,10 @@ class IMClassifier(pl.LightningModule):
         self.pointwise_conv = nn.Conv1d(in_channels, self.pointwise_out, kernel_size=1)
         self.pointwise_bn = torch.nn.BatchNorm1d(self.pointwise_out, affine=False)
 
-        self.detector = EnvelopeDetector(self.pointwise_out, self.channels_multiplier)
+        self.detector = EnvelopeDetector(self.pointwise_out,
+                                         self.channels_multiplier,
+                                         bandpass_filter_size=kwargs['bandpass_filter_size'],
+                                         lowpass_filter_size=kwargs['lowpass_filter_size'])
         # TODO: detector-out lag_backward = длина окна, длина окна фильтра, длина окна фильтра огибающей
 
         # N most recent samples
