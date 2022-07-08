@@ -50,7 +50,7 @@ validation_dataset = Physionet(*dataset_creator.create_dataset(train, args.shift
 validation_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, drop_last=True)
 #
 # Test data
-test_dataset = Physionet(*dataset_creator.create_dataset(test, args.shift))
+test_dataset = Physionet(*dataset_creator.create_dataset(test, 1))  # args.shift
 test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 
 # --------------------------------------------------
