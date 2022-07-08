@@ -81,7 +81,7 @@ class DatasetCreator():
         self.used_columns = used_columns
         self.target_column = target_column
         self.dt = dt
-        self.s_rate = 500
+        self.s_rate = 128
         self.b, self.a = sn.butter(2, [2, 40], btype='bandpass', fs=self.s_rate)
         self.b50, self.a50 = sn.butter(2, [48, 50], btype='bandstop', fs=self.s_rate)
 
