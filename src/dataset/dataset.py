@@ -137,8 +137,11 @@ class DatasetCreator():
                 x = experiment_data[:, :-1]
                 x = sn.lfilter(self.b, self.a, x, axis=0)
                 x = sn.lfilter(self.b50, self.a50, x, axis=0)
-                x -= x.mean(axis=0)[:, np.newaxis]
-                x /= x.std(axis=0)[:, np.newaxis]
+
+                mean = x.mean(axis=0)[np.newaxis, :]
+                std = x.std(axis=0)[np.newaxis, :]
+                x -= mean
+                x /= std
                 x = roll2d(x, (self.dt, len(self.used_columns)), 1, shift).squeeze()
                 x = x.transpose(0, 2, 1)
 
