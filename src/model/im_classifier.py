@@ -62,8 +62,6 @@ class IMClassifier(pl.LightningModule):
                  fin_layer_decim: int = 20,  # Прореживание
                  **kwargs):
         super(IMClassifier, self).__init__()
-        print(pointwise_out)
-        print(fin_layer_decim)
         self.pointwise_out = pointwise_out
         self.fin_layer_decim = fin_layer_decim
         self.channels_multiplier = channels_multiplier

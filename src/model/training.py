@@ -81,7 +81,7 @@ trainer = pl.Trainer(gpus=gpus,
 
 trainer.fit(model=classifier,
             train_dataloaders=train_dataloader,
-            val_dataloaders=validation_dataloader)
+            val_dataloaders=[validation_dataloader, test_dataloader])
 
 trainer.test(model=classifier,
              dataloaders=test_dataloader)
