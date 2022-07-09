@@ -155,11 +155,15 @@ class IMClassifier(pl.LightningModule):
         im_predicted, person_predicted = self.forward(channels_data)
 
         im_loss = self.loss_func(im_predicted, im_target)
+        im_accuracy = self.accuracy(torch.argmax(im_predicted, dim=1), im_target)
+
         person_loss = self.loss_func(person_predicted, person_target)
-        accuracy = self.accuracy(torch.argmax(y_predicted, dim=1), im_target)
+        person_accuracy = self.accuracy(torch.argmax(im_predicted, dim=1), im_target)
 
         self.log("Train Loss", im_loss)
-        self.log("Train Accuracy", accuracy, prog_bar=True)
+        self.log("Person Loss", person_loss)
+        self.log("Train Accuracy", im_accuracy, prog_bar=True)
+        self.log("Person Accuracy", person_accuracy)
 
         return im_loss
 
