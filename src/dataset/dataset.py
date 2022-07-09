@@ -83,7 +83,9 @@ class DatasetCreator():
         self.dt = dt
         self.s_rate = 128
         self.b, self.a = sn.butter(2, [5, 36], btype='bandpass', fs=self.s_rate)
-        self.b50, self.a50 = sn.butter(2, [37, 50], btype='bandstop', fs=self.s_rate)
+        self.b37, self.a37 = sn.butter(2, [37, 50], btype='bandstop', fs=self.s_rate)
+        self.b50, self.a50 = sn.butter(2, [48, 52], btype='bandstop', fs=self.s_rate)
+        self.b60, self.a60 = sn.butter(2, [58, 62], btype='bandstop', fs=self.s_rate)
 
         self.session_template = "session_{}"
         self.bci_exp_template = "bci_exp_{}"
@@ -136,7 +138,9 @@ class DatasetCreator():
 
                 x = experiment_data[:, :-1]
                 x = sn.lfilter(self.b, self.a, x, axis=0)
+                x = sn.lfilter(self.b37, self.a37, x, axis=0)
                 x = sn.lfilter(self.b50, self.a50, x, axis=0)
+                x = sn.lfilter(self.b60, self.a60, x, axis=0)
 
                 mean = x.mean(axis=0)[np.newaxis, :]
                 std = x.std(axis=0)[np.newaxis, :]

@@ -4,6 +4,7 @@ from typing import Any
 import pytorch_lightning as pl
 import torch
 from torch import nn
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchmetrics import Accuracy
 
 
@@ -160,7 +161,11 @@ class IMClassifier(pl.LightningModule):
 
     def configure_optimizers(self):
         optim = torch.optim.Adam(self.parameters(), lr=self.lr)
-        return optim
+        return {"optimizer": optim,
+                "lr_scheduler": {
+                    "scheduler": ReduceLROnPlateau(optim, patience=3, factor=0.1)
+
+                }}
 
 # Задние висят и много шума
 # Боковые - мышцы, передние - глаза.
