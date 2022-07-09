@@ -98,7 +98,7 @@ class IMClassifier(pl.LightningModule):
         # Spatial filtering
         inputs = self.pointwise_conv(x)
         inputs = self.pointwise_bn(inputs)
-        inputs = self.dropout(inputs)
+        inputs = self.dropout_pointwise(inputs)
 
         # Adaptive envelope extractor
         detected_envelopes = self.detector(inputs)
@@ -110,7 +110,7 @@ class IMClassifier(pl.LightningModule):
         features = detected_envelopes  # [:, :, left_samples_slice].contiguous()
         features = features.view(features.size(0), -1)
         # features = self.detector_bn(features)
-        features = self.dropout(features)
+        features = self.dropout_features(features)
 
         output = self.classifier(features)
         output = self.sigmoid(output)
