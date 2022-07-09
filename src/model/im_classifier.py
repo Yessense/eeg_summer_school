@@ -49,6 +49,7 @@ class IMClassifier(pl.LightningModule):
         parser.add_argument("--lr", type=float, default=3e-4)
         parser.add_argument("--in_channels", type=int, default=27)
         parser.add_argument("--n_classes", type=int, default=3)
+        parser.add_argument("--n_persons", type=int, default=109)
         parser.add_argument("--lag_backward", type=int, default=256)
         parser.add_argument("--pointwise_out", type=int, default=3)
         parser.add_argument("--fin_layer_decim", type=int, default=20)
@@ -63,6 +64,7 @@ class IMClassifier(pl.LightningModule):
                  lr: float = 3e-4,
                  pointwise_out: int = 3,  # Количество каналов после первой свертки
                  fin_layer_decim: int = 20,  # Прореживание
+                 n_persons: int = 109,
                  **kwargs):
         super(IMClassifier, self).__init__()
         self.pointwise_out = pointwise_out
@@ -90,7 +92,9 @@ class IMClassifier(pl.LightningModule):
         self.detector_out = 1080
         self.dropout_features = nn.Dropout(p=0.9)
         # self.dropout_pointwise = nn.Dropout(p=0.5)
-        self.classifier = nn.Linear(self.detector_out, n_classes)
+        self.im_classifier = nn.Linear(self.detector_out, n_classes)
+        self.person_linear = nn.Linear(self.detector_out, self.detector_out)
+        self.person_classifier = nn.Linear(self.detector_out, n_persons)
         self.sigmoid = nn.Sigmoid()
         self.accuracy = Accuracy()
         self.save_hyperparameters()
@@ -113,10 +117,13 @@ class IMClassifier(pl.LightningModule):
         # features = self.detector_bn(features)
         features = self.dropout_features(features)
 
-        output = self.classifier(features)
-        output = self.sigmoid(output)
+        im = self.im_classifier(features)
+        im = self.sigmoid(im)
 
-        return output
+        person = self.person_linear(features)
+        person = self.person_classifier(person)
+
+        return im, person
 
     def test_step(self, batch, idx):
         data, y_target = batch
@@ -143,17 +150,18 @@ class IMClassifier(pl.LightningModule):
             self.log("Test Accuracy", accuracy, prog_bar=True)
 
     def training_step(self, batch):
-        data, y_target = batch
+        channels_data, im_target, person_target = batch
 
-        y_predicted = self.forward(data)
+        im_predicted, person_predicted = self.forward(channels_data)
 
-        loss = self.loss_func(y_predicted, y_target)
-        accuracy = self.accuracy(torch.argmax(y_predicted, dim=1), y_target)
+        im_loss = self.loss_func(im_predicted, im_target)
+        person_loss = self.loss_func(person_predicted, person_target)
+        accuracy = self.accuracy(torch.argmax(y_predicted, dim=1), im_target)
 
-        self.log("Train Loss", loss)
+        self.log("Train Loss", im_loss)
         self.log("Train Accuracy", accuracy, prog_bar=True)
 
-        return loss
+        return im_loss
 
     def loss_func(self, y_pred, y_true):
         loss = nn.CrossEntropyLoss()
@@ -167,7 +175,7 @@ class IMClassifier(pl.LightningModule):
                     "interval": "epoch",
                     "monitor": "Val Loss/dataloader_idx_0"
                 }
-        }
+                }
 
 # Задние висят и много шума
 # Боковые - мышцы, передние - глаза.

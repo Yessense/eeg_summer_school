@@ -124,8 +124,10 @@ class DatasetCreator():
         if os.path.exists(path_to_dataset):
             return torch.load(path_to_dataset)
 
-        x_data = []
-        y_data = []
+        channels_data = []
+        label_data = []
+        person_data = []
+
         for session in session_numbers:
             for bci_exp_number in bci_exp_numbers:
                 session_name = self.session_template.format(session)
@@ -162,13 +164,17 @@ class DatasetCreator():
                 for used_class in self.used_classes:
                     used_classes_mask |= y == used_class
 
-                x_data.append(x[mask & used_classes_mask])
-                y_data.append(y[mask & used_classes_mask] - 1)
+                channels_data.append(x[mask & used_classes_mask])
+                label_data.append(y[mask & used_classes_mask] - 1)
+                person = torch.ones_like(y[mask & used_classes_mask]) * session - 1
+                person_data.append(person)
 
         print(f"Dataset is created. Time elapsed: {time.time() - start_time:0.1f} s.")
         print()
-        dataset = torch.tensor(np.concatenate(x_data, axis=0)).float(), \
-                  torch.tensor(np.concatenate(y_data, axis=0)).long()
+        dataset = torch.tensor(np.concatenate(channels_data, axis=0)).float(), \
+                  torch.tensor(np.concatenate(label_data, axis=0)).long(), \
+                  torch.tensor(np.concatenate(person_data, axis=0)).long()
+
         torch.save(dataset, path_to_dataset)
 
         return dataset
