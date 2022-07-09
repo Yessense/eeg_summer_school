@@ -165,7 +165,7 @@ class IMClassifier(pl.LightningModule):
                 "lr_scheduler": {
                     "scheduler": ReduceLROnPlateau(optim, patience=5, factor=0.2),
                     "interval": "epoch",
-                    "monitor": "Val Loss"
+                    "monitor": "Val Loss/dataloader_idx_0"
                 }}
 
 # Задние висят и много шума

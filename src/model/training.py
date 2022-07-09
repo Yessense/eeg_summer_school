@@ -62,7 +62,7 @@ classifier = IMClassifier(**dict_args)
 
 wandb_logger = WandbLogger(project='eeg', log_model=True)
 
-monitor = 'Val Loss'
+monitor = 'Val Loss/dataloader_idx_0'
 profiler = None
 
 if args.gpus is not None:
