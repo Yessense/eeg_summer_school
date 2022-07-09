@@ -22,7 +22,7 @@ class EnvelopeDetector(nn.Module):
         self.hidden_channels = self.channels_multiplier * in_channels
         self.conv_filtering = nn.Conv1d(in_channels, self.hidden_channels,
                                         kernel_size=self.bandpass_filter_size, groups=self.hidden_channels, bias=False)
-        self.pre_envelope_batchnorm = nn.BatchNorm1d(self.hidden_channels, affine=False)
+        self.pre_envelope_batchnorm = nn.BatchNorm1d(self.hidden_channels, affine=True)
 
         # Weight data = Нормированная сумма
         self.conv_envelope = nn.Conv1d(in_channels, self.hidden_channels,
@@ -97,8 +97,8 @@ class IMClassifier(pl.LightningModule):
     def forward(self, x):
         # Spatial filtering
         inputs = self.pointwise_conv(x)
-        inputs = self.pointwise_bn(inputs)
         inputs = self.dropout_pointwise(inputs)
+        inputs = self.pointwise_bn(inputs)
 
         # Adaptive envelope extractor
         detected_envelopes = self.detector(inputs)
