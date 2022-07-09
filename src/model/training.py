@@ -38,7 +38,7 @@ args = parser.parse_args()
 # --------------------------------------------------
 
 train, test = train_test_split(list(range(1, 101)), test_size=0.99, random_state=42)
-
+args.n_persons = len(train)
 # Train data
 dataset_creator = DatasetCreator(args.dataset_path, dt=args.lag_backward,
                                  val_exp_numbers=[2, 5])
