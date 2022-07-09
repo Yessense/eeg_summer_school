@@ -89,7 +89,7 @@ class IMClassifier(pl.LightningModule):
 
         self.detector_out = 1080
         self.dropout_features = nn.Dropout(p=0.9)
-        self.dropout_pointwise = nn.Dropout(p=0.5)
+        # self.dropout_pointwise = nn.Dropout(p=0.5)
         self.classifier = nn.Linear(self.detector_out, n_classes)
         self.sigmoid = nn.Sigmoid()
         self.accuracy = Accuracy()
@@ -98,7 +98,7 @@ class IMClassifier(pl.LightningModule):
     def forward(self, x):
         # Spatial filtering
         inputs = self.pointwise_conv(x)
-        inputs = self.dropout_pointwise(inputs)
+        # inputs = self.dropout_pointwise(inputs)
         inputs = self.pointwise_bn(inputs)
 
         # Adaptive envelope extractor
@@ -163,10 +163,11 @@ class IMClassifier(pl.LightningModule):
         optim = torch.optim.Adam(self.parameters(), lr=self.lr)
         return {"optimizer": optim,
                 "lr_scheduler": {
-                    "scheduler": ReduceLROnPlateau(optim, patience=5, factor=0.2, min_lr=0.0001),
+                    "scheduler": ReduceLROnPlateau(optim, patience=5, factor=0.3, min_lr=0.0001),
                     "interval": "epoch",
                     "monitor": "Val Loss/dataloader_idx_0"
-                }}
+                }
+        }
 
 # Задние висят и много шума
 # Боковые - мышцы, передние - глаза.
