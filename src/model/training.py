@@ -27,7 +27,7 @@ experiment_parser.add_argument("--shift", type=int, default=128)
 experiment_parser.add_argument("--dt", type=int, default=256)
 
 experiment_parser.add_argument("--batch_size", type=int, default=64)
-experiment_parser.add_argument("--train_test_split_max", type=int, default=110)
+experiment_parser.add_argument("--train_test_split_max", type=int, default=3)
 
 parser = IMClassifier.add_model_specific_args(parent_parser=parser)
 parser = pl.Trainer.add_argparse_args(parser)
