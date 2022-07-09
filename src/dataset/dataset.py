@@ -166,7 +166,7 @@ class DatasetCreator():
 
                 channels_data.append(x[mask & used_classes_mask])
                 label_data.append(y[mask & used_classes_mask] - 1)
-                person = torch.ones_like(y[mask & used_classes_mask]) * session - 1
+                person = np.ones_like(y[mask & used_classes_mask]) * session - 1
                 person_data.append(person)
 
         print(f"Dataset is created. Time elapsed: {time.time() - start_time:0.1f} s.")
