@@ -163,8 +163,9 @@ class IMClassifier(pl.LightningModule):
         optim = torch.optim.Adam(self.parameters(), lr=self.lr)
         return {"optimizer": optim,
                 "lr_scheduler": {
-                    "scheduler": ReduceLROnPlateau(optim, patience=3, factor=0.1)
-
+                    "scheduler": ReduceLROnPlateau(optim, patience=5, factor=0.2),
+                    "interval": "epoch",
+                    "monitor": "Val Loss"
                 }}
 
 # Задние висят и много шума
