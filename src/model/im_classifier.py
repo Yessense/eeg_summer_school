@@ -86,8 +86,8 @@ class IMClassifier(pl.LightningModule):
         #         // self.fin_layer_decim)
         # self.detector_bn = nn.BatchNorm1d(self.detector_out, affine=False)
 
-        self.detector_out = 1080
-        self.dropout = nn.Dropout(p=0.5)
+        self.detector_out = 1090
+        self.dropout = nn.Dropout(p=0.9)
         self.classifier = nn.Linear(self.detector_out, n_classes)
         self.sigmoid = nn.Sigmoid()
         self.accuracy = Accuracy()
@@ -109,6 +109,7 @@ class IMClassifier(pl.LightningModule):
         features = features.view(features.size(0), -1)
         # features = self.detector_bn(features)
         features = self.dropout(features)
+
         output = self.classifier(features)
         output = self.sigmoid(output)
 
