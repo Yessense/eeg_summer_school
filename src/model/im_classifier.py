@@ -146,6 +146,11 @@ class IMClassifier(pl.LightningModule):
         if dataloader_idx == 0:
             self.log("Val Loss", loss)
             self.log("Val Accuracy", accuracy, prog_bar=True)
+            person_loss = self.loss_func(person_predicted, person_target)
+            person_accuracy = self.accuracy(torch.argmax(im_predicted, dim=1), im_target)
+            self.log("Person Loss", person_loss)
+            self.log("Person Accuracy", person_accuracy)
+
         if dataloader_idx == 1:
             self.log("Test Loss", loss)
             self.log("Test Accuracy", accuracy, prog_bar=True)
