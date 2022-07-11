@@ -122,6 +122,7 @@ class IMClassifier(pl.LightningModule):
 
         person = self.person_linear(features)
         person = self.person_classifier(person)
+        person = self.sigmoid(person)
 
         return im, person
 
