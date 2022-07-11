@@ -89,7 +89,7 @@ class IMClassifier(pl.LightningModule):
         #         // self.fin_layer_decim)
         # self.detector_bn = nn.BatchNorm1d(self.detector_out, affine=False)
 
-        self.detector_out = 324
+        self.detector_out = 1080
         self.dropout_features = nn.Dropout(p=0.9)
         # self.dropout_pointwise = nn.Dropout(p=0.5)
         self.im_classifier = nn.Linear(self.detector_out, n_classes)
@@ -115,9 +115,9 @@ class IMClassifier(pl.LightningModule):
         features = detected_envelopes  # [:, :, left_samples_slice].contiguous()
         features = features.view(features.size(0), -1)
         # features = self.detector_bn(features)
-        features = self.dropout_features(features)
+        dropped_features = self.dropout_features(features)
 
-        im = self.im_classifier(features)
+        im = self.im_classifier(dropped_features)
         im = self.sigmoid(im)
 
         person = self.person_linear(features)
