@@ -27,7 +27,7 @@ experiment_parser.add_argument("--shift", type=int, default=128)
 experiment_parser.add_argument("--dt", type=int, default=256)
 
 experiment_parser.add_argument("--batch_size", type=int, default=64)
-experiment_parser.add_argument("--train_test_split_max", type=int, default=3)
+experiment_parser.add_argument("--train_test_split_max", type=int, default=4)
 
 parser = IMClassifier.add_model_specific_args(parent_parser=parser)
 parser = pl.Trainer.add_argparse_args(parser)
@@ -38,7 +38,7 @@ args = parser.parse_args()
 # --------------------------------------------------
 
 train, test = train_test_split(list(range(1, args.train_test_split_max)), test_size=0.1, random_state=42)
-args.n_persons = len(train)
+args.n_persons = 109
 # Train data
 dataset_creator = DatasetCreator(args.dataset_path, dt=args.lag_backward,
                                  val_exp_numbers=[2, 5])
