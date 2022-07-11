@@ -181,17 +181,20 @@ class DatasetCreator():
 
 
 class Physionet(Dataset):
-    def __init__(self, data: torch.Tensor, target: torch.Tensor):
-        assert data.shape[0] == target.shape[0]
+    def __init__(self, data: torch.Tensor,
+                 label_target: torch.Tensor,
+                 person_target: torch.Tensor):
+        assert data.shape[0] == label_target.shape[0]
         self.size = data.shape[0]
         self.data = data
-        self.target = target
+        self.label_target = label_target
+        self.person_target = person_target
 
     def __len__(self):
         return self.size
 
     def __getitem__(self, idx):
-        return self.data[idx], self.target[idx]
+        return self.data[idx], self.label_target[idx], self.person_target[idx]
 
 
 if __name__ == '__main__':
