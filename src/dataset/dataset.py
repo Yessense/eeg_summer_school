@@ -5,6 +5,7 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataset import T_co, IterableDataset
 import scipy.signal as sn
@@ -77,6 +78,9 @@ class DatasetCreator():
                             'Cp5', 'Cp3', 'Cp1', 'Cpz', 'Cp2', 'Cp4', 'Cp6',
                             'P3', 'Pz', 'P4'
                             ]
+
+        self.le = LabelEncoder()
+        self.le.fit(used_classes)
         self.path_to_dir = path_to_dir
         self.used_columns = used_columns
         self.target_column = target_column
@@ -100,6 +104,8 @@ class DatasetCreator():
     def create_dataset(self, session_numbers: List[int],
                        shift: int = 128,
                        validation: bool = False):
+        sessions_encoder = LabelEncoder()
+        sessions_encoder.fit(session_numbers)
 
         start_time = time.time()
         print(f"-" * 40)
@@ -164,9 +170,12 @@ class DatasetCreator():
                 for used_class in self.used_classes:
                     used_classes_mask |= y == used_class
 
-                channels_data.append(x[mask & used_classes_mask])
+                final_mask = mask & used_classes_mask
+
+                channels_data.append(x[final_mask])
                 label_data.append(y[mask & used_classes_mask] - 1)
-                person = np.ones_like(y[mask & used_classes_mask]) * session - 1
+                person = np.ones_like(y[final_mask], dtype=int) * session
+                person = sessions_encoder.transform(person)
                 person_data.append(person)
 
         print(f"Dataset is created. Time elapsed: {time.time() - start_time:0.1f} s.")
