@@ -89,7 +89,7 @@ class IMClassifier(pl.LightningModule):
         #         // self.fin_layer_decim)
         # self.detector_bn = nn.BatchNorm1d(self.detector_out, affine=False)
 
-        self.detector_out = 1080 # 1080 # 324
+        self.detector_out = 1080  # 1080 # 324
         self.dropout_features = nn.Dropout(p=0.9)
         # self.dropout_pointwise = nn.Dropout(p=0.5)
         self.im_classifier = nn.Linear(self.detector_out, n_classes)
@@ -132,7 +132,7 @@ class IMClassifier(pl.LightningModule):
         im_predicted, person_predicted = self.forward(channels_data)
 
         loss = self.loss_func(im_predicted, im_target)
-        accuracy = self.accuracy(im_predicted, im_target)
+        accuracy = self.accuracy(torch.argmax(im_predicted, dim=1), im_target)
         self.log("Test Loss", loss)
         self.log("Test Accuracy", accuracy, prog_bar=True)
 
@@ -165,7 +165,7 @@ class IMClassifier(pl.LightningModule):
         im_accuracy = self.accuracy(torch.argmax(im_predicted, dim=1), im_target)
 
         person_loss = self.loss_func(person_predicted, person_target)
-        person_accuracy = self.accuracy(torch.argmax(person_target, dim=1), person_predicted)
+        person_accuracy = self.accuracy(torch.argmax(person_predicted, dim=1), person_target)
 
         self.log("Train Loss", im_loss)
         self.log("Person Loss", person_loss)
