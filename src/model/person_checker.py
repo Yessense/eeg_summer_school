@@ -40,12 +40,13 @@ args = parser.parse_args()
 # --------------------------------------------------
 
 all_persons = list(range(1, 110))
-for person_idx in all_persons:
+train_persons = random.sample(all_persons, k=100)
+test_persons = [i for i in all_persons if i not in train_persons]
+
+for person_idx in train_persons:
     train = [person_idx]
 
-    test = random.sample(all_persons, 5)
-    while person_idx in test:
-        test = random.sample(all_persons, 5)
+    test = test_persons
     args.n_persons = 109
     # Train data
     dataset_creator = DatasetCreator(args.dataset_path, dt=args.lag_backward,
