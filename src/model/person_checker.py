@@ -1,6 +1,8 @@
 import sys
 from argparse import ArgumentParser
+from random import random
 
+import wandb
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
@@ -37,56 +39,62 @@ args = parser.parse_args()
 # -- Dataloaders
 # --------------------------------------------------
 
-train, test = train_test_split(list(range(1, args.train_test_split_max)), test_size=0.2, random_state=42)
-args.n_persons = 109
-# Train data
-dataset_creator = DatasetCreator(args.dataset_path, dt=args.lag_backward,
-                                 val_exp_numbers=[2, 5])
-dataset = dataset_creator.create_dataset(train, args.shift)
+all_persons = list(range(1, 110))
+for person_idx in all_persons:
+    train = [person_idx]
 
+    test = random.sample(all_persons, 5)
+    while person_idx in test:
+        test = random.sample(all_persons, 5)
+    args.n_persons = 109
+    # Train data
+    dataset_creator = DatasetCreator(args.dataset_path, dt=args.lag_backward,
+                                     val_exp_numbers=[2, 5])
+    dataset = dataset_creator.create_dataset(train, args.shift)
 
-train_dataset = Physionet(*dataset_creator.create_dataset(train, args.shift))
+    train_dataset = Physionet(*dataset_creator.create_dataset(train, args.shift))
 
-train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
-# Validation data
-validation_dataset = Physionet(*dataset_creator.create_dataset(train, args.shift, validation=True))
-validation_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, drop_last=True)
-#
-# Test data
-test_dataset = Physionet(*dataset_creator.create_dataset(test, args.shift))  # args.shift
-test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
+    # Validation data
+    validation_dataset = Physionet(*dataset_creator.create_dataset(train, args.shift, validation=True))
+    validation_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, drop_last=True)
+    #
+    # Test data
+    test_dataset = Physionet(*dataset_creator.create_dataset(test, args.shift))  # args.shift
+    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 
-# --------------------------------------------------
-# -- Trainer
-# --------------------------------------------------
+    # --------------------------------------------------
+    # -- Trainer
+    # --------------------------------------------------
 
-dict_args = vars(args)
-classifier = IMClassifier(**dict_args)
+    dict_args = vars(args)
+    classifier = IMClassifier(**dict_args)
 
-wandb_logger = WandbLogger(project='eeg', log_model=True)
+    wandb_logger = WandbLogger(project='eeg_checking', log_model=True, name=f"{person_idx} compared {test}")
 
-monitor = 'Val Loss/dataloader_idx_0'
-profiler = None
+    monitor = 'Val Loss/dataloader_idx_0'
+    profiler = None
 
-if args.gpus is not None:
-    gpus = [args.gpus]
-else:
-    gpus = None
+    if args.gpus is not None:
+        gpus = [args.gpus]
+    else:
+        gpus = None
 
-# checkpoint
-save_top_k = 2
-checkpoint_callback = ModelCheckpoint(monitor=monitor, save_top_k=save_top_k)
+    # checkpoint
+    save_top_k = 2
+    checkpoint_callback = ModelCheckpoint(monitor=monitor, save_top_k=save_top_k)
 
-trainer = pl.Trainer(gpus=gpus,
-                     max_epochs=args.max_epochs,
-                     logger=wandb_logger,
-                     profiler=profiler,)
+    trainer = pl.Trainer(gpus=gpus,
+                         max_epochs=args.max_epochs,
+                         logger=wandb_logger,
+                         profiler=profiler, )
 
-logger = wandb_logger
-trainer.fit(model=classifier,
-            train_dataloaders=train_dataloader,
-            val_dataloaders=[validation_dataloader, test_dataloader])
+    logger = wandb_logger
+    trainer.fit(model=classifier,
+                train_dataloaders=train_dataloader,
+                val_dataloaders=[validation_dataloader, test_dataloader])
 
-trainer.test(model=classifier,
-             dataloaders=test_dataloader)
+    trainer.test(model=classifier,
+                 dataloaders=test_dataloader)
+    wandb.finish()
