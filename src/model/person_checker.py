@@ -1,6 +1,6 @@
 import sys
 from argparse import ArgumentParser
-from random import random
+import random
 
 import wandb
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
